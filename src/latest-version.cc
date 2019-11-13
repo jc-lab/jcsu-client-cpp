@@ -10,7 +10,7 @@
 
 #include <jcu-http/http-get.h>
 
-#include "rapidjson/document.h"
+#include <json/json.h>
 
 namespace jcsu {
 
@@ -60,13 +60,15 @@ namespace jcsu {
         const std::vector<unsigned char> &raw_buf = response->getRawBody();
 
         if(response->getStatusCode() == 200) {
-            rapidjson::Document doc;
-            doc.Parse((const char *) raw_buf.data(), raw_buf.size());
+            Json::Value doc;
+            std::string res_str(raw_buf.begin(), raw_buf.end());
+            std::stringstream ss(res_str);
 
-            uint64_t vid = doc["vid"].GetUint64();
-            uint64_t version_number = doc["version_number"].GetUint64();
-            std::string version_display =
-                std::string(doc["version_display"].GetString(), doc["version_display"].GetStringLength());
+            ss >> doc;
+            
+            uint64_t vid = doc["vid"].asUInt64();
+            uint64_t version_number = doc["version_number"].asUInt64();
+            std::string version_display = doc["version_display"].asString();
 
             promise_.set_value(std::unique_ptr<LatestVersionResponse>(new LatestVersionResponse(
                 vid, version_number, version_display
