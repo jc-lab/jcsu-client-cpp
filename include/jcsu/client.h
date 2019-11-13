@@ -12,7 +12,6 @@
 #include <memory>
 
 #include <jcu-http/client.h>
-#include <jcu-http/custom-handler.h>
 
 #include "./jcsu-intl/identity.h"
 #include "./jcsu-intl/uniobj.h"
@@ -85,7 +84,7 @@ namespace jcsu {
 		const std::string& getDeployId() const;
 
 		// Internal methods
-		std::shared_ptr<jcu::http::ResponseFuture> executeHttp(std::unique_ptr<jcu::http::Request> req, jcu::http::CustomHandler *handler = NULL);
+		jcu::http::RequestPrepare prepareHttp(std::shared_ptr<jcu::http::Request> request);
         bool verifySignHeader(SignHeader *sign_header);
 
 	private:

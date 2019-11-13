@@ -28,24 +28,16 @@ namespace jcsu {
         std::string response_;
 
     public:
-        class Future {
+        class WorkingContext {
         private:
-            Client *client_;
-            std::shared_ptr<jcu::http::ResponseFuture> req_future_;
+            friend class LatestVersionRequest;
+
+            std::promise<std::unique_ptr<LatestVersionResponse>> promise_;
 
         public:
-            Future(std::shared_ptr<jcu::http::ResponseFuture> req_future);
+            WorkingContext();
 
-            void wait() {
-                req_future_->wait();
-            }
-
-            template<typename _Rep, typename _Period>
-            std::future_status wait_for(const std::chrono::duration<_Rep, _Period>& __rel) {
-                return req_future_->wait_for(__rel);
-            }
-
-            std::unique_ptr<LatestVersionResponse> get();
+            void onDone(jcu::http::Response *response);
         };
 
         LatestVersionResponse(bool err, int status_code, const std::string& response);
@@ -60,7 +52,7 @@ namespace jcsu {
 
     class LatestVersionRequest : public Request {
     public:
-        std::unique_ptr<LatestVersionResponse::Future> execute(std::shared_ptr<Client> client);
+        std::future<std::unique_ptr<LatestVersionResponse>> execute(std::shared_ptr<Client> client);
     };
 
 }

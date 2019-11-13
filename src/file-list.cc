@@ -26,12 +26,21 @@ namespace jcsu {
         return *this;
     }
 
-    std::unique_ptr<FileListResponse::Future> FileListRequest::execute(std::shared_ptr<Client> client) {
+    std::future<std::unique_ptr<FileListResponse>> FileListRequest::execute(std::shared_ptr<Client> client) {
         std::stringstream ss;
         ss << "/api/v1/client/d/" << client->getDeployId() << "/file-list/" << vid_;
-        std::unique_ptr<jcu::http::Request> req = jcu::http::HttpGet::create(ss.str());
-        std::shared_ptr<jcu::http::ResponseFuture> res_future = client->executeHttp(std::move(req));
-        return std::unique_ptr<FileListResponse::Future>(new FileListResponse::Future(res_future, client));
+        std::shared_ptr<jcu::http::Request> req = jcu::http::HttpGet::create(ss.str());
+
+        std::shared_ptr<FileListResponse::WorkingContext> inst(new FileListResponse::WorkingContext(client));
+        client->prepareHttp(req)
+            .withUserContext(inst)
+            .onDone([](jcu::http::Response *response) -> void {
+              std::shared_ptr<void> user_ctx = response->getUserContext();
+              FileListResponse::WorkingContext *work_ctx = (FileListResponse::WorkingContext*)user_ctx.get();
+              work_ctx->onDone(response);
+            })
+            .execute();
+        return std::move(inst->promise_.get_future());
     }
 
     FileListResponse::FileListResponse(bool err, bool verify_failed, int status_code, const std::string& response)
@@ -70,13 +79,12 @@ namespace jcsu {
         return file_list_[index];
     }
 
-    FileListResponse::Future::Future(std::shared_ptr<jcu::http::ResponseFuture> req_future, std::shared_ptr<Client> client)
-    : req_future_(req_future), client_(client)
+    FileListResponse::WorkingContext::WorkingContext(std::shared_ptr<Client> client)
+    : client_(client)
     {
     }
 
-    std::unique_ptr<FileListResponse> FileListResponse::Future::get() {
-        std::unique_ptr<jcu::http::Response> response(req_future_->get());
+    void FileListResponse::WorkingContext::onDone(jcu::http::Response *response) {
         const std::vector<unsigned char> &raw_buf = response->getRawBody();
 
         if(response->getStatusCode() == 200) {
@@ -97,9 +105,10 @@ namespace jcsu {
             std::unique_ptr<SignHeaderImpl> sign_header = SignHeaderImpl::fromJws(jws);
 
             if(!client_->verifySignHeader(sign_header.get())) {
-                return std::unique_ptr<FileListResponse>(new FileListResponse(
+                promise_.set_value(std::unique_ptr<FileListResponse>(new FileListResponse(
                     true, true, response->getStatusCode(), "Verify failed"
-                ));
+                )));
+                return ;
             }
 
             const Json::Value &json_file_list = doc["file_list"];
@@ -122,11 +131,11 @@ namespace jcsu {
                 inst->file_list_.emplace_back(file_hash_md5, file_hash_sha256, file_size, dist_path, url_map[file_hash_md5]);
             }
 
-            return std::move(inst);
+            promise_.set_value(std::move(inst));
         }else{
-            return std::unique_ptr<FileListResponse>(new FileListResponse(
+            promise_.set_value(std::unique_ptr<FileListResponse>(new FileListResponse(
                 true, false, response->getStatusCode(), std::string((const char *) raw_buf.data(), raw_buf.size())
-            ));
+            )));
         }
     }
 

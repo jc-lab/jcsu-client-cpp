@@ -40,8 +40,8 @@ namespace jcsu {
         return deploy_id_;
     }
 
-    std::shared_ptr<jcu::http::ResponseFuture> Client::executeHttp(std::unique_ptr<jcu::http::Request> req, jcu::http::CustomHandler *handler) {
-        return http_client_->execute(std::move(req), handler);
+    jcu::http::RequestPrepare Client::prepareHttp(std::shared_ptr<jcu::http::Request> request) {
+        return std::move(http_client_->prepare(request));
     }
 
     bool Client::verifySignHeader(SignHeader *sign_header) {

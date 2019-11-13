@@ -29,19 +29,37 @@ namespace jcsu {
         return *this;
     }
 
-    std::unique_ptr<FileDownloadResponse::Future> FileDownloadRequest::execute(std::shared_ptr<Client> client) {
-        std::unique_ptr<jcu::http::Request> req = jcu::http::HttpGet::create(file_item_->url);
-        std::unique_ptr<FileDownloadResponse::Future> inst(new FileDownloadResponse::Future(std::move(file_item_), std::move(file_handle_)));
-        inst->res_future_ = client->executeHttp(std::move(req), inst.get());
-        return std::move(inst);
+    std::future<std::unique_ptr<FileDownloadResponse>> FileDownloadRequest::execute(std::shared_ptr<Client> client) {
+        std::shared_ptr<jcu::http::Request> req = jcu::http::HttpGet::create(file_item_->url);
+        std::shared_ptr<FileDownloadResponse::WorkingContext> inst(new FileDownloadResponse::WorkingContext(std::move(file_item_), std::move(file_handle_)));
+        client->prepareHttp(req)
+            .withUserContext(inst)
+            .onData([inst](const void *data, size_t length, jcu::http::Response *response) -> bool {
+              return inst->onData(data, length);
+            })
+            .onDone([](jcu::http::Response *response) -> void {
+                std::shared_ptr<void> user_ctx = response->getUserContext();
+                FileDownloadResponse::WorkingContext *work_ctx = (FileDownloadResponse::WorkingContext*)user_ctx.get();
+                int status_code = response->getStatusCode();
+                work_ctx->file_handle_->close();
+                work_ctx->promise_.set_value(std::unique_ptr<FileDownloadResponse>(new FileDownloadResponse(
+                    std::move(work_ctx->file_handle_),
+                    std::move(work_ctx->file_item_),
+                    (response->getErrorCode() != jcu::http::Response::E_OK) || (status_code < 200) || (status_code >= 400) || (work_ctx->file_result_ != 0),
+                    response->getStatusCode(),
+                    work_ctx->file_result_
+                )));
+            })
+            .execute();
+        return std::move(inst->promise_.get_future());
     }
 
-    FileDownloadResponse::Future::Future(std::unique_ptr<FileItem> file_item, std::unique_ptr<jcu::file::FileHandler> file_handle)
+    FileDownloadResponse::WorkingContext::WorkingContext(std::unique_ptr<FileItem> file_item, std::unique_ptr<jcu::file::FileHandler> file_handle)
         : file_item_(std::move(file_item)), file_handle_(std::move(file_handle)), file_result_(0)
     {
     }
 
-    bool FileDownloadResponse::Future::onData(const void *data, size_t length, size_t *readed_bytes) {
+    bool FileDownloadResponse::WorkingContext::onData(const void *data, size_t length) {
         int rc;
         if(!file_handle_->isOpen()) {
             rc = file_handle_->open(jcu::file::MODE_WRITE | jcu::file::MODE_CREATE | jcu::file::RENAME_IF_EXISTS | jcu::file::REMOVE_IF_EXISTS | jcu::file::SHARE_READ | jcu::file::USE_TEMPNAME);
@@ -51,25 +69,11 @@ namespace jcsu {
             }
         }
         rc = file_handle_->write(data, length);
-        if(rc > 0) {
-            *readed_bytes = rc;
-        }else{
+        if(rc < 0) {
             file_result_ = rc;
+            return false;
         }
         return true;
-    }
-
-    std::unique_ptr<FileDownloadResponse> FileDownloadResponse::Future::get() {
-        std::unique_ptr<jcu::http::Response> response(res_future_->get());
-        int status_code = response->getStatusCode();
-        file_handle_->close();
-        return std::unique_ptr<FileDownloadResponse>(new FileDownloadResponse(
-            std::move(file_handle_),
-            std::move(file_item_),
-            (response->getErrorCode() != jcu::http::Response::E_OK) || (status_code < 200) || (status_code >= 400) || (file_result_ != 0),
-            response->getStatusCode(),
-            file_result_
-        ));
     }
 
     FileDownloadResponse::FileDownloadResponse(std::unique_ptr<jcu::file::FileHandler> file_handle,

@@ -19,6 +19,8 @@
 
 namespace jcsu {
 
+    class FileListRequest;
+
     class FileListResponse {
     private:
         bool error_;
@@ -33,24 +35,18 @@ namespace jcsu {
         std::string response_;
 
     public:
-        class Future {
+        class WorkingContext {
         private:
+            friend class FileListRequest;
+
             std::shared_ptr<Client> client_;
-            std::shared_ptr<jcu::http::ResponseFuture> req_future_;
+
+            std::promise<std::unique_ptr<FileListResponse>> promise_;
 
         public:
-            Future(std::shared_ptr<jcu::http::ResponseFuture> req_future, std::shared_ptr<Client> client);
+            WorkingContext(std::shared_ptr<Client> client);
 
-            void wait() {
-                req_future_->wait();
-            }
-
-            template<typename _Rep, typename _Period>
-            std::future_status wait_for(const std::chrono::duration<_Rep, _Period>& __rel) {
-                return req_future_->wait_for(__rel);
-            }
-
-            std::unique_ptr<FileListResponse> get();
+            void onDone(jcu::http::Response *response);
         };
 
         FileListResponse(bool err, bool verify_failed, int status_code, const std::string& response);
@@ -74,7 +70,7 @@ namespace jcsu {
 
     public:
         FileListRequest &withVid(uint64_t vid);
-        std::unique_ptr<FileListResponse::Future> execute(std::shared_ptr<Client> client);
+        std::future<std::unique_ptr<FileListResponse>> execute(std::shared_ptr<Client> client);
     };
 
 }

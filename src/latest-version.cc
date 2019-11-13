@@ -14,10 +14,18 @@
 
 namespace jcsu {
 
-    std::unique_ptr<jcsu::LatestVersionResponse::Future> LatestVersionRequest::execute(std::shared_ptr<Client> client) {
-        std::unique_ptr<jcu::http::Request> req = jcu::http::HttpGet::create("/api/v1/client/d/" + client->getDeployId() + "/latest-version");
-        std::shared_ptr<jcu::http::ResponseFuture> res_future = client->executeHttp(std::move(req));
-        return std::unique_ptr<LatestVersionResponse::Future>(new LatestVersionResponse::Future(res_future));
+    std::future<std::unique_ptr<LatestVersionResponse>> LatestVersionRequest::execute(std::shared_ptr<Client> client) {
+        std::shared_ptr<jcu::http::Request> req = jcu::http::HttpGet::create("/api/v1/client/d/" + client->getDeployId() + "/latest-version");
+        std::shared_ptr<LatestVersionResponse::WorkingContext> inst(new LatestVersionResponse::WorkingContext());
+        client->prepareHttp(req)
+            .withUserContext(inst)
+            .onDone([](jcu::http::Response *response) -> void {
+              std::shared_ptr<void> user_ctx = response->getUserContext();
+              LatestVersionResponse::WorkingContext *work_ctx = (LatestVersionResponse::WorkingContext*)user_ctx.get();
+              work_ctx->onDone(response);
+            })
+            .execute();
+        return std::move(inst->promise_.get_future());
     }
 
     LatestVersionResponse::LatestVersionResponse(bool err, int status_code, const std::string& response)
@@ -44,13 +52,11 @@ namespace jcsu {
         return response_;
     }
 
-    LatestVersionResponse::Future::Future(std::shared_ptr<jcu::http::ResponseFuture> req_future)
-    : req_future_(req_future)
+    LatestVersionResponse::WorkingContext::WorkingContext()
     {
     }
 
-    std::unique_ptr<LatestVersionResponse> LatestVersionResponse::Future::get() {
-        std::unique_ptr<jcu::http::Response> response(req_future_->get());
+    void LatestVersionResponse::WorkingContext::onDone(jcu::http::Response *response) {
         const std::vector<unsigned char> &raw_buf = response->getRawBody();
 
         if(response->getStatusCode() == 200) {
@@ -62,13 +68,13 @@ namespace jcsu {
             std::string version_display =
                 std::string(doc["version_display"].GetString(), doc["version_display"].GetStringLength());
 
-            return std::unique_ptr<LatestVersionResponse>(new LatestVersionResponse(
+            promise_.set_value(std::unique_ptr<LatestVersionResponse>(new LatestVersionResponse(
                 vid, version_number, version_display
-            ));
+            )));
         }else{
-            return std::unique_ptr<LatestVersionResponse>(new LatestVersionResponse(
+            promise_.set_value(std::unique_ptr<LatestVersionResponse>(new LatestVersionResponse(
                 true, response->getStatusCode(), std::string((const char *) raw_buf.data(), raw_buf.size())
-            ));
+            )));
         }
     }
 
