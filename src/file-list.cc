@@ -66,6 +66,9 @@ namespace jcsu {
     const std::string &FileListResponse::getVersionDisplay() const {
         return version_display_;
     }
+    const std::vector<std::string> &FileListResponse::getFlags() const {
+        return flags_;
+    }
     const std::string &FileListResponse::getSignedMetadata() const {
         return signed_metadata_;
     }
@@ -77,6 +80,12 @@ namespace jcsu {
     }
     const FileItem &FileListResponse::getFileItem(int index) const {
         return file_list_[index];
+    }
+    int FileListResponse::getFlagCount() const {
+        return flags_.size();
+    }
+    const std::string &FileListResponse::getFlagItem(int index) const {
+        return flags_[index];
     }
 
     FileListResponse::WorkingContext::WorkingContext(std::shared_ptr<Client> client)
@@ -111,16 +120,24 @@ namespace jcsu {
                 return ;
             }
 
+            std::unique_ptr<FileListResponse> inst(new FileListResponse(
+                vid, version_number, version_display
+            ));
+
             const Json::Value &json_file_list = doc["file_list"];
             for(auto it = json_file_list.begin(); it != json_file_list.end(); it++) {
                 url_map[(*it)["file_hash_md5"].asString()] = (*it)["url"].asString();
             }
 
-            const Json::Value *json_distribute_files = jws->claims().get().json("distribute_files");
+            const Json::Value *json_flags = jws->claims().get().json("flags");
+            if(!json_flags->empty()) {
+                inst->flags_.reserve(json_flags->size());
+                for(auto it = json_flags->begin(); it != json_flags->end(); it++) {
+                    inst->flags_.emplace_back(it->asString());
+                }
+            }
 
-            std::unique_ptr<FileListResponse> inst(new FileListResponse(
-                vid, version_number, version_display
-            ));
+            const Json::Value *json_distribute_files = jws->claims().get().json("distribute_files");
 
             inst->file_list_.reserve(json_distribute_files->size());
             for(auto it = json_distribute_files->begin(); it != json_distribute_files->end(); it++) {

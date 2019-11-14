@@ -10,6 +10,9 @@
 
 #include <stdint.h>
 
+#include <vector>
+#include <string>
+
 #include <jcu-http/response.h>
 #include <jcu-http/request.h>
 
@@ -26,10 +29,13 @@ namespace jcsu {
         bool error_;
         bool verify_failed_;
         int status_code_;
+
+        std::string signed_metadata_;
+
         uint64_t vid_;
         uint64_t version_number_;
         std::string version_display_;
-        std::string signed_metadata_;
+        std::vector<std::string> flags_;
         std::vector<FileItem> file_list_;
 
         std::string response_;
@@ -57,11 +63,14 @@ namespace jcsu {
         uint64_t getVid() const;
         uint64_t getVersionNumber() const;
         const std::string &getVersionDisplay() const;
+        const std::vector<std::string> &getFlags() const;
         const std::string &getSignedMetadata() const;
         const std::string &getResponse() const;
 
         int getFileCount() const;
         const FileItem &getFileItem(int index) const;
+        int getFlagCount() const;
+        const std::string &getFlagItem(int index) const;
     };
 
     class FileListRequest : public Request {
