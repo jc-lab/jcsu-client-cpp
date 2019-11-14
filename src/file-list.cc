@@ -57,6 +57,9 @@ namespace jcsu {
     bool FileListResponse::isVerifyFailed() const {
         return verify_failed_;
     }
+	int FileListResponse::getStatusCode() const {
+		return status_code_;
+	}
     uint64_t FileListResponse::getVid() const {
         return vid_;
     }

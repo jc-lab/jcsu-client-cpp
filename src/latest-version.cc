@@ -39,6 +39,9 @@ namespace jcsu {
     bool LatestVersionResponse::hasError() const {
         return error_;
     }
+	int LatestVersionResponse::getStatusCode() const {
+		return status_code_;
+	}
     uint64_t LatestVersionResponse::getVid() const {
         return vid_;
     }

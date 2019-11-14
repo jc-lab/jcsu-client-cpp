@@ -60,6 +60,7 @@ namespace jcsu {
 
         bool hasError() const;
         bool isVerifyFailed() const;
+		int getStatusCode() const;
         uint64_t getVid() const;
         uint64_t getVersionNumber() const;
         const std::string &getVersionDisplay() const;

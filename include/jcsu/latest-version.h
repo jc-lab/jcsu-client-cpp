@@ -44,6 +44,7 @@ namespace jcsu {
         LatestVersionResponse(uint64_t vid, uint64_t version_number, const std::string &version_display);
 
         bool hasError() const;
+		int getStatusCode() const;
         uint64_t getVid() const;
         uint64_t getVersionNumber() const;
         const std::string &getVersionDisplay() const;
