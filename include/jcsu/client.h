@@ -18,9 +18,6 @@
 
 #include "client-handler.h"
 
-#include "latest-version.h"
-#include "latest-version.h"
-
 namespace jcsu {
 
     class SignHeader;
@@ -36,7 +33,7 @@ namespace jcsu {
             std::shared_ptr<jcu::http::Client> http_client_;
 
 			std::string api_endpoint_;
-            UniObj<ClientHandler> version_resolver_;
+            UniObj<ClientHandler> client_handler_;
 
             Builder();
 			Builder(std::shared_ptr<Client> *target);
@@ -66,9 +63,9 @@ namespace jcsu {
 
             Builder& withHttpClient(std::shared_ptr<jcu::http::Client> client);
 			Builder& withApiEndpoint(const char *url);
-            Builder& withVersionResolver(ClientHandler *version_resolver);
-            Builder& withVersionResolver(std::unique_ptr<ClientHandler> version_resolver);
-            Builder& withVersionResolver(std::shared_ptr<ClientHandler> version_resolver);
+            Builder& withClientHandler(ClientHandler *handler);
+            Builder& withClientHandler(std::unique_ptr<ClientHandler> handler);
+            Builder& withClientHandler(std::shared_ptr<ClientHandler> handler);
 
 			template<class T>
 			T build() {
@@ -77,6 +74,7 @@ namespace jcsu {
 		};
 
 		static Builder& singletoneBuilder();
+        static std::unique_ptr<Builder> createBuilder();
 
 		static std::shared_ptr<Client> getSingletone();
 

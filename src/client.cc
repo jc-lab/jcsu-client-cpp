@@ -28,6 +28,10 @@ namespace jcsu {
         return Builder::createStaticBuilder(&singletone_instance_);
     }
 
+    std::unique_ptr<Client::Builder> Client::createBuilder() {
+        return std::move(Builder::createBuilder());
+    }
+
     std::shared_ptr<Client> Client::getSingletone() {
         return singletone_instance_;
     }

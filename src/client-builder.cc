@@ -38,23 +38,23 @@ namespace jcsu {
         return *this;
     }
 
-    Client::Builder& Client::Builder::withVersionResolver(ClientHandler* version_resolver) {
-        version_resolver_ = version_resolver;
+    Client::Builder& Client::Builder::withClientHandler(ClientHandler* handler) {
+        client_handler_ = handler;
         return *this;
     }
 
-    Client::Builder& Client::Builder::withVersionResolver(std::unique_ptr<ClientHandler> version_resolver) {
-        version_resolver_ = std::move(version_resolver);
+    Client::Builder& Client::Builder::withClientHandler(std::unique_ptr<ClientHandler> handler) {
+        client_handler_ = std::move(handler);
         return *this;
     }
 
-    Client::Builder& Client::Builder::withVersionResolver(std::shared_ptr<ClientHandler> version_resolver) {
-        version_resolver_ = version_resolver;
+    Client::Builder& Client::Builder::withClientHandler(std::shared_ptr<ClientHandler> handler) {
+        client_handler_ = handler;
         return *this;
     }
 
     Client* Client::Builder::_build() {
-        return new Client(http_client_, api_endpoint_, std::move(version_resolver_));
+        return new Client(http_client_, api_endpoint_, std::move(client_handler_));
     }
 
 }
