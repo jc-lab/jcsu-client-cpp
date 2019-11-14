@@ -90,6 +90,27 @@ namespace jcsu {
     const std::string &FileListResponse::getFlagItem(int index) const {
         return flags_[index];
     }
+	bool FileListResponse::hasFlag(std::string target_upper) const {
+		int target_length = target_upper.length();
+		for (auto it = target_upper.begin(); it != target_upper.end(); it++) {
+			*it = toupper(*it);
+		}
+		for (auto it = flags_.cbegin(); it != flags_.end(); it++) {
+			if (it->length() == target_length) {
+				std::string cur_upper(*it);
+				for (auto it = cur_upper.begin(); it != cur_upper.end(); it++) {
+					*it = toupper(*it);
+				}
+				if (cur_upper == target_upper) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	bool FileListResponse::hasFlag(const char* flag) const {
+		return hasFlag(std::string(flag));
+	}
 
     FileListResponse::WorkingContext::WorkingContext(std::shared_ptr<Client> client)
     : client_(client)

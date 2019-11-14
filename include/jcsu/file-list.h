@@ -72,6 +72,8 @@ namespace jcsu {
         const FileItem &getFileItem(int index) const;
         int getFlagCount() const;
         const std::string &getFlagItem(int index) const;
+		bool hasFlag(const char* flag) const;
+		bool hasFlag(std::string flag) const;
     };
 
     class FileListRequest : public Request {
