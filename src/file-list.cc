@@ -169,7 +169,13 @@ namespace jcsu {
                 std::string file_hash_sha256 = (*it)["file_hash_sha256"].asString();
                 uint64_t file_size = (*it)["file_size"].asUInt64();
                 std::string dist_path = (*it)["dist_path"].asString();
-                inst->file_list_.emplace_back(file_hash_md5, file_hash_sha256, file_size, dist_path, url_map[file_hash_md5]);
+                std::vector<std::string> flags;
+                const Json::Value &json_flags = (*it)["flags"];
+                flags.reserve(json_flags.size());
+                for(auto sub_it = json_flags.begin(); sub_it != json_flags.end(); sub_it++) {
+                    flags.emplace_back(sub_it->asString());
+                }
+                inst->file_list_.emplace_back(file_hash_md5, file_hash_sha256, file_size, dist_path, url_map[file_hash_md5], flags);
             }
 
             promise_.set_value(std::move(inst));
