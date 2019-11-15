@@ -32,6 +32,25 @@ namespace jcsu {
 
         FileItem(const std::string& _file_hash_md_5, const std::string& _file_hash_sha_256, uint64_t _file_size, const std::string& _dist_path, const std::string& _url, const std::vector<std::string> &_flags)
             : file_hash_md5(_file_hash_md_5), file_hash_sha256(_file_hash_sha_256), file_size(_file_size), dist_path(_dist_path), url(_url), flags(_flags) {}
+
+        bool hasFlag(std::string target) const {
+            int target_length = target.length();
+            for (auto it = target.begin(); it != target.end(); it++) {
+                *it = toupper(*it);
+            }
+            for (auto it = flags.cbegin(); it != flags.end(); it++) {
+                if (it->length() == target_length) {
+                    std::string cur_upper(*it);
+                    for (auto it = cur_upper.begin(); it != cur_upper.end(); it++) {
+                        *it = toupper(*it);
+                    }
+                    if (cur_upper == target) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
     };
 
 }
