@@ -108,9 +108,6 @@ namespace jcsu {
 		}
 		return false;
 	}
-	bool FileListResponse::hasFlag(const char* flag) const {
-		return hasFlag(std::string(flag));
-	}
 
     FileListResponse::WorkingContext::WorkingContext(std::shared_ptr<Client> client)
     : client_(client)
